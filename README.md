@@ -71,7 +71,7 @@ def link_comment(url):
             response = session.get(url)
             if response.status_code == 429:
                 print("⚠ 429 Too Many Requests - 재시도 중...")
-                time.sleep(random.uniform(3, 7))  # 3~7초 랜덤 딜레이
+                time.sleep(random.uniform(1, 3))  # 랜덤 딜레이
             else:
                 break  # 정상 응답이면 루프 탈출
 
@@ -113,7 +113,7 @@ def news_list(url):
             response = session.get(url)
             if response.status_code == 429:
                 print("⚠ 429 Too Many Requests - 재시도 중...")
-                time.sleep(random.uniform(3, 7))
+                time.sleep(random.uniform(1, 3))
             else:
                 break
 
@@ -124,9 +124,9 @@ def news_list(url):
         base_url = 'https://finance.naver.com/research/'
         for row in table_rows:
             stock_tag = row.find("a", class_="stock_item")
-            if stock_tag is None:
+            if stock_tag is None: #종목이 아닌 태그의 경우 스킵
                 continue
-            link_tag = row.find("a", class_=False)  # 클래스 없는 첫 번째 <a> 대신 적절한 태그 선택 필요
+            link_tag = row.find("a", class_=False)  
             date_tag = row.find("td", class_="date")
 
             stock = stock_tag.text.strip() if stock_tag else "None"
@@ -154,7 +154,7 @@ def news_list(url):
 def url_generator(n):
     links =[]
     header = 'https://finance.naver.com/research/company_list.naver?&page='
-    for i in range(2,n):
+    for i in range(2,n): #1페이지는 링크형식이 다름
         links.append(header+str(i))
     return links
 ```
