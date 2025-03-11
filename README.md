@@ -56,6 +56,47 @@ def link_comment(url):
 
 ```python
 def news_list(url):
+    try:
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+        })
+
+        for _ in range(3):
+            response = session.get(url)
+            if response.status_code == 429:
+                print("⚠ 429 Too Many Requests - 재시도 중...")
+                time.sleep(random.uniform(3, 7))
+            else:
+                break
+
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, "html.parser")
+        table_rows = soup.find_all("tr")
+        stocks = []
+        base_url = 'https://finance.naver.com/research/'
+        for row in table_rows:
+            stock_tag = row.find("a", class_="stock_item")
+            if stock_tag is None:
+                continue
+            link_tag = row.find("a", class_=False)  # 클래스 없는 첫 번째 <a> 대신 적절한 태그 선택 필요
+            date_tag = row.find("td", class_="date")
+
+            stock = stock_tag.text.strip() if stock_tag else "None"
+            link_url = base_url + link_tag['href'] if link_tag and 'href' in link_tag.attrs else None
+            date = date_tag.text.strip() if date_tag else "N/A"
+
+            coment = link_comment(link_url) if link_url else []
+            stocks.append((stock, coment, date))
+
+        return stocks  # 결과를 반환
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 웹사이트 요청 중 오류 발생: {e}")
+        return []
+    except Exception as e:
+        print(f"❌ 기타 오류 발생: {e}")
+        return []
 ```
 
 ### 3. `url_generator(n)`
@@ -64,6 +105,11 @@ def news_list(url):
 
 ```python
 def url_generator(n):
+    links =[]
+    header = 'https://finance.naver.com/research/company_list.naver?&page='
+    for i in range(2,n):
+        links.append(header+str(i))
+    return links
 ```
 
 ### 4. `update_stock(url)`
@@ -73,6 +119,25 @@ def url_generator(n):
 
 ```python
 def update_stock(url):
+    try:
+        with open("stock_data.json", "r", encoding="utf-8") as f:
+            stock_dict = json.load(f)  # 기존 데이터 로드
+    except FileNotFoundError:
+        stock_dict = {}  # 파일이 없으면 빈 딕셔너리로 시작
+
+    new_data = news_list(url)  # URL에서 새 데이터 가져오기
+
+    # 새 데이터를 stock_dict에 추가
+    for id_, status, date in new_data:
+        if id_ not in stock_dict:
+            stock_dict[id_] = {}  # 새로운 종목 추가
+        stock_dict[id_][date] = status  # 날짜별 상태 저장
+
+    # JSON 파일에 다시 저장
+    with open("stock_data.json", "w", encoding="utf-8") as f:
+        json.dump(stock_dict, f, indent=4, ensure_ascii=False)
+
+    print("새 데이터가 추가되었습니다.")
 ```
 
 ### 5. 메인 실행 코드
