@@ -12,6 +12,40 @@
 
 ```python
 def link_comment(url):
+    try:
+        # 세션 생성 (쿠키 유지)
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+        })
+
+        # HTML 가져오기 (429 방지)
+        for _ in range(3):  # 최대 3번 재시도
+            response = session.get(url)
+            if response.status_code == 429:
+                print("⚠ 429 Too Many Requests - 재시도 중...")
+                time.sleep(random.uniform(3, 7))  # 3~7초 랜덤 딜레이
+            else:
+                break  # 정상 응답이면 루프 탈출
+
+        response.raise_for_status()  # HTTP 오류 확인
+
+        # BeautifulSoup으로 HTML 파싱
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # 특정 <em> 태그 찾기
+        comments = soup.find_all('em', class_='coment')
+
+        if comments:
+            return [comment.text.strip() for comment in comments]  # 리스트로 반환
+        else:
+            print("❌ 해당 클래스를 가진 태그를 찾을 수 없습니다.")
+            return []
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 웹사이트 요청 중 오류 발생: {e}")
+    except Exception as e:
+        print(f"❌ 기타 오류 발생: {e}")
 ```
 
 ### 2. `news_list(url)`
